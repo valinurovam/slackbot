@@ -1,0 +1,19 @@
+{
+    "name": "valinurovam/slackbot",
+    "authors": [
+        {
+            "name": "Alexander Valinurov",
+            "email": "avalinurov@avito.ru"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,	
+    "require": {
+        "coderstephen/slack-client": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "SlackBot\\": "src"
+        }
+    }
+}
