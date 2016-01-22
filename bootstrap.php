@@ -6,15 +6,16 @@ date_default_timezone_set('Europe/Moscow');
 
 $logger = new \SlackBot\Logger\EchoLogger();
 
-$invoker = new \SlackBot\Invoker();
-$invoker->addCommand(
-    new \SlackBot\Command\PingPong($logger)
-);
+$invoker = new \SlackBot\Invoker\Invoker();
+$invoker
+    ->addCommand(
+        new \SlackBot\Command\PingPong($logger)
+    );
 
 $loop = React\EventLoop\Factory::create();
 
 $client = new Slack\RealTimeClient($loop);
-$client->setToken('SLACK-TOKEN');
+$client->setToken('SLACK_TOKEN');
 
 $bot = new \SlackBot\Bot($loop, $client, $invoker, $logger);
 $bot->run();

@@ -20,7 +20,7 @@ class PingPong extends AbstractCommand
      */
     public function getHelp()
     {
-        return 'ping-pong command';
+        return 'Ping-pong command';
     }
 
     /**

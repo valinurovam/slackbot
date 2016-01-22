@@ -9,6 +9,7 @@ use Slack\Message\Message;
 use Slack\Payload;
 use Slack\RealTimeClient;
 use Slack\User;
+use SlackBot\Invoker\Invoker;
 
 class Bot
 {
@@ -54,6 +55,62 @@ class Bot
      */
     public function run()
     {
+        $this->prepareOnMessage();
+        $this->preparePeriodicCommands();
+        $this->connect();
+
+        $this->loop->run();
+    }
+
+    /**
+     * @param string $message
+     * @param string $destinationId
+     */
+    protected function sendMessageByDestId($message, $destinationId)
+    {
+        $this->client
+            ->getChannelGroupOrDMByID($destinationId)
+            ->then(
+                function (ChannelInterface $channel) use ($message) {
+                    $this->client->send($message, $channel);
+                }
+            );
+    }
+
+    protected function sendMessageByDestName($message, $destinationName)
+    {
+        if ($destinationName[0] === '#') {
+            $destinationName = substr($destinationName, 1);
+            $this->client
+                ->getChannelByName($destinationName)
+                ->then(
+                    function (ChannelInterface $channel) use ($message) {
+                        $this->client->send($message, $channel);
+                    }
+                );
+        }
+
+        if ($destinationName[0] === '@') {
+            $destinationName = substr($destinationName, 1);
+            $this->client->getUserByName($destinationName)
+                ->then(
+                    function (User $user) use ($message) {
+                        $this->client->getDMByUser($user)
+                            ->then(
+                                function (ChannelInterface $channel) use ($message) {
+                                    $this->client->send($message, $channel);
+                                }
+                            );
+                    }
+                );
+        }
+    }
+
+    /**
+     * Prepare onMessage handler
+     */
+    protected function prepareOnMessage()
+    {
         $this->client
             ->on(
                 'message',
@@ -74,7 +131,7 @@ class Bot
                     $message = new Message($this->client, $data->getData());
                     $invokeResult = $this->invoker->execute($message);
 
-                    $this->sendMessage($invokeResult, $data['channel']);
+                    $this->sendMessageByDestId($invokeResult, $data['channel']);
 
                     $this->logger->info(
                         sprintf(
@@ -84,7 +141,13 @@ class Bot
                     );
                 }
             );
+    }
 
+    /**
+     * Connect to slack server
+     */
+    protected function connect()
+    {
         $this
             ->client
             ->connect()
@@ -99,22 +162,26 @@ class Bot
                     $this->logger->info("Connected as " . $this->botUser->getUsername());
                 }
             );
-
-        $this->loop->run();
     }
 
     /**
-     * @param string $message
-     * @param string $channelId
+     * Prepare periodic commands
      */
-    protected function sendMessage($message, $channelId)
+    protected function preparePeriodicCommands()
     {
-        $this->client
-            ->getChannelGroupOrDMByID($channelId)
-            ->then(
-                function (ChannelInterface $channel) use ($message) {
-                    $this->client->send($message, $channel);
+        $commands = $this->invoker->getPeriodicCommands();
+
+        foreach ($commands as $command) {
+            $this->loop->addPeriodicTimer(
+                $command->getInterval(),
+                function () use ($command) {
+                    $cmdResult = $command->execute();
+                    $this->sendMessageByDestName(
+                        $cmdResult->getText(),
+                        $cmdResult->getDestination()
+                    );
                 }
             );
+        }
     }
 }

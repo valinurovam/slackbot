@@ -1,9 +1,11 @@
 <?php
 
-namespace SlackBot;
+namespace SlackBot\Invoker;
 
 use Slack\Message\Message;
+use SlackBot\Command;
 use SlackBot\Command\CommandInterface;
+use SlackBot\Command\PeriodicCommandInterface;
 
 class Invoker
 {
@@ -18,10 +20,10 @@ class Invoker
      */
     protected $commandList = [];
 
-    public function __construct()
-    {
-
-    }
+    /**
+     * @var PeriodicCommandInterface[]
+     */
+    protected $periodicCommandList = [];
 
     /**
      * @param CommandInterface $command
@@ -45,6 +47,40 @@ class Invoker
         }
 
         return $this;
+    }
+
+    /**
+     * @param PeriodicCommandInterface $command
+     * @return $this
+     */
+    public function addPeriodicCommand(PeriodicCommandInterface $command)
+    {
+        if ($this->isCommandExists($command->getName(), true)) {
+            throw new \RuntimeException(
+                sprintf(
+                    "Command '%s' is already exists.",
+                    $command->getName()
+                )
+            );
+        }
+
+        if ($this->checkName($command->getName())
+            && $this->checkInterval($command->getInterval())
+        ) {
+            $this->periodicCommandList[$command->getName()] = $command;
+        } else {
+            throw new \RuntimeException("Command name or interval can not be empty.");
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Command\PeriodicCommandInterface[]
+     */
+    public function getPeriodicCommands()
+    {
+        return $this->periodicCommandList;
     }
 
     /**
@@ -79,13 +115,23 @@ class Invoker
         return !empty($commandName);
     }
 
+    protected function checkInterval($interval)
+    {
+        return (int) $interval > 0;
+    }
+
     /**
      * @param $commandName
+     * @param bool $periodic
      * @return bool
      */
-    protected function isCommandExists($commandName)
+    protected function isCommandExists($commandName, $periodic = false)
     {
-        return isset($this->commandList[$commandName]);
+        if ($periodic) {
+            return isset($this->periodicCommandList[$commandName]);
+        } else {
+            return isset($this->commandList[$commandName]);
+        }
     }
 
     /**
@@ -119,7 +165,7 @@ class Invoker
             "Welcome to Invoker.Slackbot!:spock-hand:\n",
             "Usage:",
             "\tcommand [arguments]\n",
-            "Available commands:"
+            "Available commands:",
         ];
 
         foreach ($this->commandList as $command) {
@@ -129,6 +175,12 @@ class Invoker
                 $command->getHelp()
             );
         }
+
+        $cList[] = sprintf(
+            "\t%-17s%s",
+            'help',
+            'Show this help message'
+        );
 
         return implode("\n", $cList);
     }

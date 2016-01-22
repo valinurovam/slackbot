@@ -2,19 +2,22 @@
 
 namespace SlackBot\Command;
 
+use Psr\Log\LoggerInterface;
+use Slack\Message\Message;
+
 interface CommandInterface
 {
     /**
      * CommandInterface constructor.
-     * @param \Psr\Log\LoggerInterface $logger
+     * @param LoggerInterface $logger
      */
-    public function __construct(\Psr\Log\LoggerInterface $logger);
+    public function __construct(LoggerInterface $logger);
 
     /**
-     * @param \Slack\Message\Message $message
+     * @param Message $message
      * @return string
      */
-    public function execute(\Slack\Message\Message $message);
+    public function execute(Message $message);
 
     /**
      * Return well formatted help message for clients

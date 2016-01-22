@@ -20,19 +20,4 @@ abstract class AbstractCommand implements CommandInterface
     {
         $this->logger = $logger;
     }
-
-    /**
-     * @inheritdoc
-     */
-    abstract public function execute(Message $message);
-
-    /**
-     * @inheritdoc
-     */
-    abstract public function getHelp();
-
-    /**
-     * @inheritdoc
-     */
-    abstract public function getName();
 }
